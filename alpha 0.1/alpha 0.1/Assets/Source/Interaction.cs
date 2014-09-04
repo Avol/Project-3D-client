@@ -122,7 +122,7 @@ public class Interaction {
                 interacted = true;
                 if (this.isLeftHandGripped)
                     interactionObject.clickHandler();
-                else if (interactionObject.mouseOverHandler != null)
+                else 
                     interactionObject.mouseOverHandler();
             }
             if (rightHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
@@ -130,7 +130,7 @@ public class Interaction {
                 interacted = true;
                 if (this.isRightHandGripped)
                     interactionObject.clickHandler();
-                else if (interactionObject.mouseOverHandler != null)
+                else
                     interactionObject.mouseOverHandler();
             }
 
@@ -139,11 +139,11 @@ public class Interaction {
                 interacted = true;
                 if (Input.GetMouseButtonDown(0))
                     interactionObject.clickHandler();
-                else if (interactionObject.mouseOverHandler != null)
+                else
                     interactionObject.mouseOverHandler(); 
             }
 
-            if (!interacted && interactionObject.mouseOutHandler != null)
+            if (!interacted)
                 interactionObject.mouseOutHandler();
         }
     }
