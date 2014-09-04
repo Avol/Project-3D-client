@@ -117,35 +117,47 @@ public class Interaction {
             // check rect overlaps & hand grip.
             // execute handler if met the conditions.
             bool interacted = false;
-            if (leftHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
+            // MAKE SURE OBJECT IS VISIBLE ON SCREEN.
+            if (interactionObject.gObject.renderer.isVisible)
             {
-                interacted = true;
-                if (this.isLeftHandGripped)
-                    interactionObject.clickHandler();
-                else if (interactionObject.mouseOverHandler != null)
-                    interactionObject.mouseOverHandler();
-            }
-            if (rightHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
-            {
-                interacted = true;
-                if (this.isRightHandGripped)
-                    interactionObject.clickHandler();
-                else if (interactionObject.mouseOverHandler != null)
-                    interactionObject.mouseOverHandler();
-            }
+                // CHECK KINECT HANDS
+                if (leftHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
+                {
+                    interacted = true;
+                    if (this.isLeftHandGripped)
+                    {
+                        interactionObject.clickHandler();
+                    }
+                    else if (interactionObject.mouseOverHandler != null)
+                        interactionObject.mouseOverHandler();
+                }
+                if (rightHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
+                {
+                    interacted = true;
+                    if (this.isRightHandGripped)
+                        interactionObject.clickHandler();
+                    else if (interactionObject.mouseOverHandler != null)
+                        interactionObject.mouseOverHandler();
+                }
 
-            if (this.objectToScreenRect(interactionObject.gObject).Contains(Input.mousePosition))
-            {
-                interacted = true;
-                if (Input.GetMouseButtonDown(0))
-                    interactionObject.clickHandler();
-                else if (interactionObject.mouseOverHandler != null)
-                    interactionObject.mouseOverHandler(); 
-            }
+                // CHECK CURSOR.
+                if (this.objectToScreenRect(interactionObject.gObject).Contains(Input.mousePosition))
+                {
+                    interacted = true;
+                    if (Input.GetMouseButtonDown(0))
+                        interactionObject.clickHandler();
+                    else if (interactionObject.mouseOverHandler != null)
+                        interactionObject.mouseOverHandler();
 
+                }
+            }
             if (!interacted && interactionObject.mouseOutHandler != null)
                 interactionObject.mouseOutHandler();
         }
+    }
+
+    private void calculateCollisionEventRay() {
+
     }
 
     private void calculateDrag()
@@ -184,6 +196,7 @@ public class Interaction {
             max = Vector2.Max(max, v);
         }
 
+        if (max.x - min.x > 1000 || max.y - min.y > 1000) new Rect(0, 0, 0, 0);
         return new Rect(min.x, min.y, max.x - min.x, max.y - min.y);
     }
 

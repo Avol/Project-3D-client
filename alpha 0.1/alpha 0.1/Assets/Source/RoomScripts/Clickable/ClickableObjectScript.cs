@@ -16,28 +16,27 @@ public class ClickableObjectScript : MonoBehaviour
 	private float play;
 	private ParticleEmitter particle;
 	
-	
 	void Awake () 
 	{
-		
 		particle = this.gameObject.transform.FindChild("SparkleParticles").GetComponent<ParticleEmitter>();
 		particle.emit = false;
-		interaction = GameObject.Find("Player").transform.FindChild("Main Camera").GetComponent<Core>().interaction;
-		interaction.addInteractionObject(this.gameObject, delegate() {
-			Debug.Log("a");
-		});
-		
-		Debug.Log(this.gameObject);
-		
-	}
-	
-	void Start ()
-	{
-		
 	}
 	
 	void Update () 
 	{
+        if (interaction==null)
+        {
+            interaction = GameObject.Find("Player").transform.FindChild("Main Camera").GetComponent<Core>().interaction;
+            if (interaction != null)
+            {
+                interaction.addInteractionObject(this.gameObject, delegate()
+                {
+                    this.OnMouseDown();
+                    Debug.Log(gameObject.name);
+                });
+            }
+        }
+
 		play = Mathf.PingPong(Time.time, 3);
 		if (play > 2.9)
 		{
