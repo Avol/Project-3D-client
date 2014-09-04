@@ -5,7 +5,7 @@ public class Core : MonoBehaviour {
     public Interaction interaction;
     public ProfileManager profileManager;
 
-	void Start () {
+	void Awake () {
         this.interaction = new Interaction(this);
         this.profileManager = new ProfileManager(this);
 	}

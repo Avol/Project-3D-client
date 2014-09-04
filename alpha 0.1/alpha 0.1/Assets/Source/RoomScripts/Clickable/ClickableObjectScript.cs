@@ -8,7 +8,9 @@ using System.Collections;
 public class ClickableObjectScript : MonoBehaviour 
 {
 	public Material normal;
-	public Material iluminated;
+	public Material iluminated;//correct name
+	
+	private Interaction interaction;
 	
 	private string name;
 	private float play;
@@ -17,12 +19,21 @@ public class ClickableObjectScript : MonoBehaviour
 	
 	void Awake () 
 	{
+		
 		particle = this.gameObject.transform.FindChild("SparkleParticles").GetComponent<ParticleEmitter>();
+		particle.emit = false;
+		interaction = GameObject.Find("Player").transform.FindChild("Main Camera").GetComponent<Core>().interaction;
+		interaction.addInteractionObject(this.gameObject, delegate() {
+			Debug.Log("a");
+		});
+		
+		Debug.Log(this.gameObject);
+		
 	}
 	
 	void Start ()
 	{
-		particle.emit = false;
+		
 	}
 	
 	void Update () 
