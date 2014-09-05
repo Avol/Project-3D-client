@@ -54,8 +54,13 @@ public class Interaction {
     {
         while (true)
         {
+            if (this.leftHandGUITexture == null)
+            {
+                this.leftHandGUITexture = GameObject.Find("LeftHand").GetComponent<GUITexture>();
+                this.rightHandGUITexture = GameObject.Find("RightHand").GetComponent<GUITexture>();
+            }
             this.extractHandData();
-            this.calculateCollisionEvent();
+            if (this.interactionObjects.Count>0)this.calculateCollisionEvent();
             yield return new WaitForSeconds(0.01f);
         }
     }
@@ -151,8 +156,10 @@ public class Interaction {
 
                 }
             }
-            if (!interacted && interactionObject.mouseOutHandler != null)
+            else if (interactionObject.mouseOutHandler != null)
+            {
                 interactionObject.mouseOutHandler();
+            }  
         }
     }
 
@@ -224,7 +231,7 @@ public class Interaction {
     /// </summary>
     public void clearInteractionEvents()
     {
-        this.interactionObjects.Clear();
+        this.interactionObjects = new List<InteractionObject>();
     }
 }
 

@@ -31,8 +31,13 @@ public class ClickableObjectScript : MonoBehaviour
             {
                 interaction.addInteractionObject(this.gameObject, delegate()
                 {
-                    this.OnMouseDown();
-                    Debug.Log(gameObject.name);
+                    OnMouseDown();
+                }, delegate()
+                {
+                    gameObject.renderer.material = iluminated;
+                }, delegate()
+                {
+                    gameObject.renderer.material = normal;
                 });
             }
         }
@@ -48,18 +53,18 @@ public class ClickableObjectScript : MonoBehaviour
 		}
 
 	}
+
+    /*void OnMouseOver () 
+    {	
+        this.gameObject.renderer.material = iluminated;
+    }
 	
-	void OnMouseOver () 
-	{	
-		this.gameObject.renderer.material = iluminated;
-	}
-	
-	void OnMouseExit ()
-	{
-		this.gameObject.renderer.material = normal;
-	}
-	
-	virtual public void OnMouseDown ()
+    void OnMouseExit ()
+    {
+        this.gameObject.renderer.material = normal;
+    }*/
+
+    virtual public void OnMouseDown ()
 	{
 		// To be overridden
 	}

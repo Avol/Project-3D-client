@@ -20,7 +20,13 @@ public class StateMachine : MonoBehaviour
 	private NodeScript prevNode;
 	private NodeScript startNode;
 	private NodeScript targetNode;
-	
+
+    private Interaction interaction;
+    private GameObject leftButton;
+    private GameObject rightButton;
+    private GameObject backButton;
+    private GameObject playButton;
+    private GameObject interactButton;
 	
 	public enum States
 	{
@@ -43,7 +49,12 @@ public class StateMachine : MonoBehaviour
 		range = 0.05F;
 		
 		startNode = GameObject.Find("Node1").GetComponent<NodeScript>();
-		
+
+        leftButton = GameObject.Find("LeftButton");
+        rightButton = GameObject.Find("RightButton");
+        backButton = GameObject.Find("Back");
+        playButton = GameObject.Find("Play");
+        interactButton = GameObject.Find("Interact");
 	}
 	
 	void Start ()
@@ -54,6 +65,36 @@ public class StateMachine : MonoBehaviour
 	
 	void Update () 
 	{
+        if (interaction == null)
+        {
+            interaction = GameObject.Find("Player").transform.FindChild("Main Camera").GetComponent<Core>().interaction;
+            if (interaction != null)
+            {
+                interaction.addInteractionObject(leftButton, delegate()
+                {
+                    targetNode = targetNode.Links[1];
+                });
+                interaction.addInteractionObject(rightButton, delegate()
+                {
+                    targetNode = targetNode.Links[0];
+                });
+                interaction.addInteractionObject(backButton, delegate()
+                {
+                    endPoint = startPoint;
+                    target = prevNode.ThisObject;
+                    currentState = MOVE;
+                });
+                interaction.addInteractionObject(playButton, delegate()
+                {
+                    print("Playing the game");
+                });
+                interaction.addInteractionObject(interactButton, delegate()
+                {
+                    print("Interact");
+                });
+            }
+        }
+
 		StateManagement();
 		Debug.Log(currentState);
 	}
@@ -107,7 +148,13 @@ public class StateMachine : MonoBehaviour
 	{
 		if (currentState == EXPLORE)
 		{
-			if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Left"))
+            leftButton.SetActive(true);
+            rightButton.SetActive(true);
+            backButton.SetActive(false);
+            playButton.SetActive(false);
+            interactButton.SetActive(false);
+
+			/*if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Left"))
 			{
 				targetNode = targetNode.Links[1];
 			}
@@ -115,12 +162,18 @@ public class StateMachine : MonoBehaviour
 			if (GUI.Button(new Rect(Screen.width - 110, Screen.height/2 - 25, 100, 50), "Right"))
 			{
 				targetNode = targetNode.Links[0];
-			}
+			}*/
 		}
 		
 		if (currentState == PLAY)
 		{
-			if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Back"))
+            leftButton.SetActive(false);
+            rightButton.SetActive(false);
+            backButton.SetActive(true);
+            playButton.SetActive(true);
+            interactButton.SetActive(false);
+
+			/*if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Back"))
 			{				
 				endPoint = startPoint;
 				target = prevNode.ThisObject;
@@ -130,12 +183,18 @@ public class StateMachine : MonoBehaviour
 			if (GUI.Button(new Rect(Screen.width - 110, Screen.height/2 - 25, 100, 50), "Play Game"))				
 			{
 				print ("Playing the game");
-			}
+			}*/
 		}
 		
 		if (currentState == INTERACT)
 		{
-			if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Back"))
+            leftButton.SetActive(false);
+            rightButton.SetActive(false);
+            backButton.SetActive(true);
+            playButton.SetActive(false);
+            interactButton.SetActive(true);
+
+			/*if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Back"))
 			{				
 				endPoint = startPoint;
 				target = prevNode.ThisObject;
@@ -145,7 +204,7 @@ public class StateMachine : MonoBehaviour
 			if (GUI.Button(new Rect(Screen.width - 110, Screen.height/2 - 25, 100, 50), "Interact"))				
 			{
 				print ("Interact");
-			}
+			}*/
 		}
 	}
 	

@@ -25,7 +25,7 @@ public class Menu : MonoBehaviour {
 	}
 	
 	void Start () {
-        this.interaction = GameObject.Find("Main Camera").GetComponent<Core>().interaction;
+        this.interaction = GameObject.Find("Camera").GetComponent<Core>().interaction;
         this.interaction.addInteractionObject(GameObject.Find("ProfileMenuButton"), delegate()
         {
             profileMenuButton();
@@ -82,7 +82,9 @@ public class Menu : MonoBehaviour {
 		_mainMenu.SetActive (false);
 		_profileMenu.SetActive (false);
 		_profileScreen.SetActive (false);
+        interaction.clearInteractionEvents();
 		Application.LoadLevel("Room");
+        GameObject.Destroy(GameObject.Find("Camera"));
 	}
 
 	void exitGame(){
