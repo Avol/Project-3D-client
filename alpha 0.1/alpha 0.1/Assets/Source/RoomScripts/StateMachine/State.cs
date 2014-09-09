@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class State {
+public class State 
+{
 
 	public State ()
 	{

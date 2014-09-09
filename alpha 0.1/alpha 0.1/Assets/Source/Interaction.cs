@@ -156,7 +156,7 @@ public class Interaction {
 
                 }
             }
-            else if (interactionObject.mouseOutHandler != null)
+            else if (interactionObject.mouseOutHandler != null && !interacted)
             {
                 interactionObject.mouseOutHandler();
             }  

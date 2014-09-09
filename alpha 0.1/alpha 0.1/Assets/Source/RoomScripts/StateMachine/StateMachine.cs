@@ -1,227 +1,240 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+/// <summary>
+/// State machine.cs is attached to all the mementos in the levels/scene
+/// </summary>
+
 public class StateMachine : MonoBehaviour 
 {
+	private Interaction interaction;
 
-	private State EXPLORE;
-	private State PLAY;
-	private State INTERACT;
-	private State MOVE;
+	private State ZOOMED;
+	private State MOVEIN;
+	private State MOVEOUT;
+	private State PLACED;
 	private State currentState;
 	
-	private Transform startPoint;
-	private Transform endPoint;
-	private Transform camera;
-	private GameObject target;
-	
+	private Vector3 placedPosition;
+	private Vector3 targetPosition;
+	private Vector3 camera;
 	private float range;
 	
-	private NodeScript prevNode;
-	private NodeScript startNode;
-	private NodeScript targetNode;
-
-    private Interaction interaction;
-    private GameObject leftButton;
-    private GameObject rightButton;
-    private GameObject backButton;
-    private GameObject playButton;
-    private GameObject interactButton;
+	private bool playSound;
+	private bool mementoUsed;
 	
-	public enum States
+	public Material normal;
+	public Material illuminated;
+	public AudioClip[] audioClip;
+	public int investigateTime;
+	
+	public bool toggleZoom;
+	public bool toggleRotate;
+	public bool toggleAnimate;
+	public bool togglePlaySound;
+	
+	private static bool usingMemento;
+	
+	void Awake ()
 	{
-		EXPLORE,
-		PLAY,
-		INTERACT,
-		MOVE
-	}
-
-	void Awake () 
-	{
-		EXPLORE = new ExploreMode();
-		PLAY = new PlayMode();
-		INTERACT = new InteractMode();
-		MOVE = new MoveMode();
 		
-		startPoint = GameObject.Find("StartPosition").transform;
-		camera = this.gameObject.transform.FindChild("Main Camera").transform;
+		ZOOMED = new ZoomedMode();
+		MOVEIN = new MoveInMode();
+		MOVEOUT = new MoveOutMode();
+		PLACED = new PlacedMode();
 		
-		range = 0.05F;
+		currentState = PLACED;
 		
-		startNode = GameObject.Find("Node1").GetComponent<NodeScript>();
-
-        leftButton = GameObject.Find("LeftButton");
-        rightButton = GameObject.Find("RightButton");
-        backButton = GameObject.Find("Back");
-        playButton = GameObject.Find("Play");
-        interactButton = GameObject.Find("Interact");
+		placedPosition = this.gameObject.transform.position;
+		camera = GameObject.Find("Player").transform.FindChild("Player Camera").transform.position;
+		range = 0.003F;
+		
+		playSound = false;
+		mementoUsed = false;
+		usingMemento = false;
+		
 	}
 	
-	void Start ()
+	void Update ()
 	{
-		currentState = EXPLORE;
-		targetNode = startNode;
-	}
-	
-	void Update () 
-	{
-        if (interaction == null)
-        {
-            interaction = GameObject.Find("Player").transform.FindChild("Main Camera").GetComponent<Core>().interaction;
-            if (interaction != null)
-            {
-                interaction.addInteractionObject(leftButton, delegate()
-                {
-                    targetNode = targetNode.Links[1];
-                });
-                interaction.addInteractionObject(rightButton, delegate()
-                {
-                    targetNode = targetNode.Links[0];
-                });
-                interaction.addInteractionObject(backButton, delegate()
-                {
-                    endPoint = startPoint;
-                    target = prevNode.ThisObject;
-                    currentState = MOVE;
-                });
-                interaction.addInteractionObject(playButton, delegate()
-                {
-                    print("Playing the game");
-                });
-                interaction.addInteractionObject(interactButton, delegate()
-                {
-                    print("Interact");
-                });
-            }
-        }
+		Debug.Log(this.gameObject.name + usingMemento);
+//		Debug.Log("levelMemento: " + MementoScript.UsedLevelMementos);
+//		Debug.Log("totalMemento: " + MementoScript.UsedTotalMementos);
 
+		InteractionManagement();
 		StateManagement();
-		Debug.Log(currentState);
 	}
 	
-	void StateManagement ()
+	private void StateManagement ()
 	{
-		if (currentState == EXPLORE)
+		if (currentState == PLACED)
 		{
-			camera.rotation = Quaternion.Slerp(camera.rotation, Quaternion.LookRotation(targetNode.transform.position - camera.position), Time.deltaTime);
+
 		}
 		
-		if (currentState == MOVE)
+		if (currentState == MOVEIN)
 		{
-			prevNode = targetNode;
-		
-			this.gameObject.transform.position = Vector3.Lerp(this.gameObject.transform.position, endPoint.position, Time.deltaTime);
-			camera.rotation = Quaternion.Slerp(camera.rotation, Quaternion.LookRotation(target.transform.position - camera.position), Time.deltaTime);
-			
-			float distance = Vector3.Distance(this.gameObject.transform.position, endPoint.position);
-			if (distance < range)
+		//	Will only be executed when object are allowed to zoom, else playsound/animation inmediately
+			if (toggleZoom)
 			{
-				if (target.name == "game")
+				MoveInGameObject();
+			}
+			else
+			{
+				currentState = ZOOMED;
+			}
+		}
+	
+		if (currentState == ZOOMED)
+		{
+		//	Will only be executed when objects are allowed to rotate, else there is a time to investigate the object before it returnes
+			if (toggleRotate)
+			{
+				this.gameObject.transform.Rotate(new Vector3(0, 0.5F, 0));
+			}
+			
+			if (togglePlaySound)
+			{
+				if (!playSound)
 				{
-					currentState = PLAY;
+					PlaySound(Random.Range(0, audioClip.Length));	
 				}
 				
-				if (target.name == "token")
+			}
+			
+			if (toggleAnimate)
+			{
+				Debug.Log("ANIMATION");
+			}
+			
+			if (!toggleAnimate && !togglePlaySound)
+			{
+				StartCoroutine(Investigate());
+			}
+		}
+		
+		if (currentState == MOVEOUT)
+		{
+			
+			if (toggleZoom)
+			{
+				MoveOutGameObject();
+			}
+		}
+	}
+	
+	private void InteractionManagement ()
+	{
+		if (interaction == null)
+		{
+			interaction = GameObject.Find("Player").transform.FindChild("Player Camera").GetComponent<Core>().interaction;
+			
+			if (interaction != null)
+			{
+				interaction.addInteractionObject(this.gameObject, delegate() 
 				{
-					currentState = INTERACT;
-				}
-				
-				if(target == targetNode.ThisObject)
+					MouseHandler()	;
+				}, 
+					delegate() 
 				{
-					currentState = EXPLORE;
-				}
+					MouseOverHandler();
+				}, 
+					delegate() 
+				{
+					MouseOutHandler();
+				});
 			}
-		}
-		
-		if (currentState == PLAY)
-		{
-			
-		}
-		
-		if (currentState == INTERACT)
-		{
-			
 		}
 	}
 	
-	void OnGUI ()
+	private void MouseHandler ()
 	{
-		if (currentState == EXPLORE)
+		if (!usingMemento)
 		{
-            leftButton.SetActive(true);
-            rightButton.SetActive(true);
-            backButton.SetActive(false);
-            playButton.SetActive(false);
-            interactButton.SetActive(false);
-
-			/*if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Left"))
+			if (!mementoUsed)
 			{
-				targetNode = targetNode.Links[1];
+				MementoScript.UsedLevelMementos++;
+				MementoScript.UsedTotalMementos++;
 			}
+			mementoUsed = true;
 			
-			if (GUI.Button(new Rect(Screen.width - 110, Screen.height/2 - 25, 100, 50), "Right"))
-			{
-				targetNode = targetNode.Links[0];
-			}*/
+			currentState = MOVEIN;
+			usingMemento = true;
 		}
-		
-		if (currentState == PLAY)
+	}
+	
+	private void MouseOverHandler ()
+	{
+//		Debug.Log("MouseOver");
+		if (currentState == PLACED)
+		{	
+			renderer.material = illuminated;
+		}
+	}
+	
+	private void MouseOutHandler ()
+	{
+//		Debug.Log("mouseOut");
+		if (currentState == PLACED)
 		{
-            leftButton.SetActive(false);
-            rightButton.SetActive(false);
-            backButton.SetActive(true);
-            playButton.SetActive(true);
-            interactButton.SetActive(false);
-
-			/*if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Back"))
-			{				
-				endPoint = startPoint;
-				target = prevNode.ThisObject;
-				currentState = MOVE;
-			}
-							
-			if (GUI.Button(new Rect(Screen.width - 110, Screen.height/2 - 25, 100, 50), "Play Game"))				
-			{
-				print ("Playing the game");
-			}*/
+			renderer.material = normal;
 		}
+	}
+	
+	private void MoveInGameObject ()
+	{
+		targetPosition = GameObject.Find("Player").transform.FindChild("ZoomedPosition").transform.position;
+		this.gameObject.transform.position = Vector3.Lerp(this.gameObject.transform.position, targetPosition, Time.deltaTime);
 		
-		if (currentState == INTERACT)
+		float distance = Vector3.Distance(this.gameObject.transform.position, targetPosition);
+		if(distance < range)
 		{
-            leftButton.SetActive(false);
-            rightButton.SetActive(false);
-            backButton.SetActive(true);
-            playButton.SetActive(false);
-            interactButton.SetActive(true);
-
-			/*if (GUI.Button(new Rect(10, Screen.height/2 - 25, 100, 50), "Back"))
-			{				
-				endPoint = startPoint;
-				target = prevNode.ThisObject;
-				currentState = MOVE;
-			}
-			
-			if (GUI.Button(new Rect(Screen.width - 110, Screen.height/2 - 25, 100, 50), "Interact"))				
+			currentState = ZOOMED;
+			if (audioClip.Length != 0)
 			{
-				print ("Interact");
-			}*/
+				playSound = false;
+			}
 		}
 	}
 	
-	public void SetStateToMove()
-	{
-		currentState = MOVE;
+	private void MoveOutGameObject ()
+	{	
+		this.gameObject.transform.position = Vector3.Lerp(this.gameObject.transform.position, placedPosition, Time.deltaTime);
+		this.gameObject.transform.rotation = Quaternion.Slerp(this.gameObject.transform.rotation, Quaternion.LookRotation(camera - this.gameObject.transform.position), Time.deltaTime);
+		
+		float distance = Vector3.Distance(this.gameObject.transform.position, placedPosition);
+		if(distance < range)
+		{
+			usingMemento = false;
+			if (!usingMemento)
+			{
+				currentState = PLACED;
+			}
+		}
 	}
 	
-	public Transform EndPoint
+	private void PlaySound(int clip)
 	{
-		get {return endPoint;}
-		set {endPoint = value;}
+		audio.clip = audioClip[clip];
+		audio.Play();
+		StartCoroutine (DelayedSwitchState(audio.clip.length));
+		playSound = true;
 	}
 	
-	public GameObject Target
+	private IEnumerator Investigate ()
 	{
-		get {return target;}
-		set {target = value;}
+		yield return new WaitForSeconds (investigateTime);
+		currentState = MOVEOUT;
+		yield return new WaitForSeconds (1);
+		StopCoroutine("Investigate");
+	}
+	
+	private IEnumerator DelayedSwitchState(float time)
+	{
+		yield return new WaitForSeconds (time);
+		currentState = MOVEOUT;
+		yield return new WaitForSeconds (1);
+		StopCoroutine("DelayedSwitchState");
+		
 	}
 }
