@@ -11,16 +11,18 @@ public class Interaction {
     private Core core;
     private InteractionManager manager;
 
+    private const int selectedTimerLimit = 15;
+
     public Vector3 leftHandScreenPos { get; private set; }
     public Vector3 rightHandScreenPos { get; private set; }
 
-    public bool isLeftHandGripped { get; private set; }
-    public bool isLeftHandReleased { get; private set; }
-    public bool isRightHandGripped { get; private set; }
-    public bool isRightHandReleased { get; private set; }
+    private GUITexture leftHandObject;
+    private GUITexture rightHandObject;
 
-    private GUITexture leftHandGUITexture;
-    private GUITexture rightHandGUITexture;
+    public GameObject selectedLeftHand;
+    public GameObject selectedRightHand;
+    public int selectedLeftTimer;
+    public int selectedRightTimer;
 
     private IList<InteractionObject> interactionObjects;
 
@@ -32,16 +34,10 @@ public class Interaction {
     {
         this.core = core;
 
-        this.isLeftHandGripped = false;
-        this.isLeftHandReleased = false;
-        this.isRightHandGripped = false;
-        this.isRightHandReleased = false;
+        this.leftHandObject = GameObject.Find("LeftHand").GetComponent<GUITexture>();
+        this.rightHandObject = GameObject.Find("RightHand").GetComponent<GUITexture>();
 
         this.manager = core.GetComponent<InteractionManager>();
-
-        this.leftHandGUITexture = GameObject.Find("LeftHand").GetComponent<GUITexture>();
-        this.rightHandGUITexture = GameObject.Find("RightHand").GetComponent<GUITexture>();
-
         this.interactionObjects = new List<InteractionObject>();
 
         this.core.StartCoroutine(this.update());
@@ -54,14 +50,12 @@ public class Interaction {
     {
         while (true)
         {
-            if (this.leftHandGUITexture == null)
-            {
-                this.leftHandGUITexture = GameObject.Find("LeftHand").GetComponent<GUITexture>();
-                this.rightHandGUITexture = GameObject.Find("RightHand").GetComponent<GUITexture>();
-            }
             this.extractHandData();
-            if (this.interactionObjects.Count>0)this.calculateCollisionEvent();
-            yield return new WaitForSeconds(0.01f);
+            if (this.interactionObjects.Count > 0)
+            {
+                this.calculateSelectedEvent();
+            }
+            yield return new WaitForSeconds(0.05f);
         }
     }
 
@@ -72,104 +66,68 @@ public class Interaction {
     {
         if (manager != null && manager.IsInteractionInited())
         {
-            // extract hand coordinates.
-            this.leftHandScreenPos = manager.GetLeftHandScreenPos();
-            this.rightHandScreenPos = manager.GetRightHandScreenPos();
-
-            // update hand texture coordinates
-            this.leftHandGUITexture.transform.position = this.leftHandScreenPos;
-            this.rightHandGUITexture.transform.position = this.rightHandScreenPos;
-
-            // check for left hand grip
-            if (this.manager.GetLeftHandEvent() == InteractionWrapper.InteractionHandEventType.Grip)
-            {
-                this.isLeftHandGripped = true;
-                this.isLeftHandReleased = false;
-                this.leftHandGUITexture.texture = (Texture)Resources.Load("LeftHandGrip");
-            }
-            else if (this.manager.GetLeftHandEvent() == InteractionWrapper.InteractionHandEventType.Release)
-            {
-                this.isLeftHandGripped = false;
-                this.isLeftHandReleased = true;
-                this.leftHandGUITexture.texture = (Texture)Resources.Load("LeftHandRelease");
-            }
-            //check for right hand grip
-            if (this.manager.GetRightHandEvent() == InteractionWrapper.InteractionHandEventType.Grip)
-            {
-                this.isRightHandGripped = true;
-                this.isRightHandReleased = false;
-                this.rightHandGUITexture.texture = (Texture)Resources.Load("RightHandGrip");
-            }
-            else if (this.manager.GetRightHandEvent() == InteractionWrapper.InteractionHandEventType.Release)
-            {
-                this.isRightHandGripped = false;
-                this.isRightHandReleased = true;
-                this.rightHandGUITexture.texture = (Texture)Resources.Load("RightHandRelease");
-            }
+            this.leftHandObject.transform.position = manager.GetLeftHandScreenPos();
+            this.rightHandObject.transform.position = manager.GetRightHandScreenPos();
         }
     }
 
     /// <summary>
-    /// Calculates the hand & object collision.
-    /// Executes handles if gripped.
+    /// 
     /// </summary>
-    private void calculateCollisionEvent()
+    private void calculateSelectedEvent()
     {
-        foreach(InteractionObject interactionObject in this.interactionObjects) {
-            // extract hand texture rectangles.
-            Rect leftHandRect = this.leftHandGUITexture.GetScreenRect();
-            Rect rightHandRect = this.rightHandGUITexture.GetScreenRect();
-            // check rect overlaps & hand grip.
-            // execute handler if met the conditions.
-            bool interacted = false;
-            // MAKE SURE OBJECT IS VISIBLE ON SCREEN.
-            if (interactionObject.gObject.renderer.isVisible)
+        if (this.interactionObjects != null)
+            for (int i = 0; i < this.interactionObjects.Count; i++)
             {
-                // CHECK KINECT HANDS
-                if (leftHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
+                InteractionObject interactionObject = this.interactionObjects[i];
+                if (interactionObject != null)
                 {
-                    interacted = true;
-                    if (this.isLeftHandGripped)
+                    // extract hand texture rectangles.
+                    Rect leftHandRect = this.leftHandObject.GetScreenRect();
+                    Rect rightHandRect = this.rightHandObject.GetScreenRect();
+
+                    bool interacted = false;
+                    if (leftHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
                     {
-                        interactionObject.clickHandler();
+                        interacted = true;
+                        if (interactionObject.mouseOverHandler != null)
+                            interactionObject.mouseOverHandler();
+                        if (this.selectedLeftHand == interactionObject.gObject)
+                            this.selectedLeftTimer++;
+                        else this.selectedLeftTimer = 0;
+                        if (this.selectedLeftTimer >= selectedTimerLimit)
+                            interactionObject.mouseDownHandler("left");
+                        this.selectedLeftHand = interactionObject.gObject;
                     }
-                    else if (interactionObject.mouseOverHandler != null)
-                        interactionObject.mouseOverHandler();
-                }
-                if (rightHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
-                {
-                    interacted = true;
-                    if (this.isRightHandGripped)
-                        interactionObject.clickHandler();
-                    else if (interactionObject.mouseOverHandler != null)
-                        interactionObject.mouseOverHandler();
-                }
 
-                // CHECK CURSOR.
-                if (this.objectToScreenRect(interactionObject.gObject).Contains(Input.mousePosition))
-                {
-                    interacted = true;
-                    if (Input.GetMouseButtonDown(0))
-                        interactionObject.clickHandler();
-                    else if (interactionObject.mouseOverHandler != null)
-                        interactionObject.mouseOverHandler();
+                    if (rightHandRect.Overlaps(this.objectToScreenRect(interactionObject.gObject)))
+                    {
+                        interacted = true;
+                        if (interactionObject.mouseOverHandler != null)
+                            interactionObject.mouseOverHandler();
+                        if (this.selectedRightHand == interactionObject.gObject)
+                            this.selectedRightTimer++;
+                        else this.selectedRightTimer = 0;
+                        if (this.selectedRightTimer >= selectedTimerLimit)
+                            interactionObject.mouseDownHandler("right");
+                        this.selectedRightHand = interactionObject.gObject;
+                    }
+                    else this.selectedRightHand = null;
 
+                    if (this.objectToScreenRect(interactionObject.gObject).Contains(Input.mousePosition))
+                    {
+                        interacted = true;
+                        if (Input.GetMouseButton(0))
+                            interactionObject.mouseDownHandler("cursor");
+                        if (interactionObject.mouseOverHandler != null)
+                            interactionObject.mouseOverHandler();
+                    }
+
+                    if (interacted == false)
+                        if (interactionObject.mouseOutHandler != null)
+                            interactionObject.mouseOutHandler();
                 }
             }
-            else if (interactionObject.mouseOutHandler != null && !interacted)
-            {
-                interactionObject.mouseOutHandler();
-            }  
-        }
-    }
-
-    private void calculateCollisionEventRay() {
-
-    }
-
-    private void calculateDrag()
-    {
-
     }
 
     /// <summary>
@@ -212,18 +170,27 @@ public class Interaction {
     /// </summary>
     /// <param name="rect"></param> a recatangle needed to calculate the hand and object collision.
     /// <param name="handler">a function executed, on hand interaction with object.</param>
-    public void addInteractionObject(GameObject gObject, Action handler, Action mouseOverHandler=null, Action mouseOutHandler=null)
+    public InteractionObject addInteractionObject(GameObject gObject, Action<string> mouseDownHandler, Action<string> mouseUpHandler=null, Action mouseOverHandler=null, Action mouseOutHandler=null)
     {
-        this.interactionObjects.Add(new InteractionObject(gObject, handler, mouseOverHandler, mouseOutHandler));
+        InteractionObject iObject = new InteractionObject(gObject, mouseDownHandler, mouseUpHandler, mouseOverHandler, mouseOutHandler);
+        this.interactionObjects.Add(iObject);
+        return iObject;
     }
 
     /// <summary>
     /// 
     /// </summary>
     /// <param name="interactionObject"></param>
-    public void removeInteractionObject(InteractionObject interactionObject)
+    public void removeInteractionObject(GameObject gameObject)
     {
-        this.interactionObjects.Remove(interactionObject);
+        foreach (InteractionObject iObject in this.interactionObjects)
+        {
+            if (iObject.gObject == gameObject)
+            {
+                this.interactionObjects.Remove(iObject);
+                break;
+            }
+        }
     }
 
     /// <summary>
@@ -241,15 +208,17 @@ public class Interaction {
 public class InteractionObject
 {
     public GameObject gObject;
-    public Action clickHandler;
+    public Action<string> mouseDownHandler;
+    public Action<string> mouseUpHandler;
     public Action mouseOverHandler;
     public Action mouseOutHandler;
 
-    public InteractionObject(GameObject gObject, Action clickHandler, Action mouseOverHandler, Action mouseOutHandler)
+    public InteractionObject(GameObject gObject, Action<string> mouseDownHandler, Action<string> mouseUpHandler, Action mouseOverHandler, Action mouseOutHandler)
     {
         this.gObject = gObject;
-        this.clickHandler = clickHandler;
+        this.mouseDownHandler = mouseDownHandler;
         this.mouseOverHandler = mouseOverHandler;
         this.mouseOutHandler = mouseOutHandler;
+        this.mouseUpHandler = mouseUpHandler;
     }
 }
